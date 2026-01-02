@@ -50,7 +50,7 @@ print_ok () {
 
 prerequisites () {
 	echo -n "Installing prerequisites..."
-	run_cmd "apt install --yes debootstrap gdisk zfsutils-linux"
+	run_cmd "apt install --yes debootstrap gdisk zfsutils-linux dosfstools"
 	print_ok
 }
 
