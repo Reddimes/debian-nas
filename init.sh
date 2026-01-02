@@ -2,7 +2,7 @@
 
 # Gather user input
 clear
-DISKS=($(ls -A /dev/disk/by-id/ | sed '/-part/d;/usb/d;/scsi/d'))
+DISKS=($(ls -A /dev/disk/by-id/ | sed '/-part/d;/usb/d;/scsi/d;/ata/d'))
 
 if [[ -z HOSTNAME ]]; then	
 	echo -ne "\nEnter Desired Hostname[Anvillon]: "
