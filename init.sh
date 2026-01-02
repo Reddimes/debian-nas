@@ -2,46 +2,19 @@
 
 # Gather user input
 clear
-echo "Here is the list of disks installed on your system:"
-echo -e "\tPartitions are ignored, USB is ignored, and "
-echo -e "\tSCSI drives are ignored as Ubuntu 24.04 doesn't load them automatically."
-ls -A /dev/disk/by-id/ | sed '/-part/d;/usb/d;/scsi/d'
+DISKS=$(ls -A /dev/disk/by-id/ | sed '/-part/d;/usb/d;/scsi/d')
 
-DISKS=()
+if [[ -z HOSTNAME ]]; then	
+	echo -ne "\nEnter Desired Hostname[Anvillon]: "
+	read HOSTNAME
+fi
+HOSTNAME=${HOSTNAME:-Anvillon}
 
-echo -e "\nDisks to use:"
-echo -e "\tCopy and paste from above. Enter an empty string to end: "
-# Gather DISKS for use.
-while true
-do
-	# echo -n "Disk-${#DISKS[@]}: "
-	read input
-	if [[ $input = "" ]]
-	then
-		if ((${#DISKS[@]} >= 4))
-		then
-			if ((${#DISKS[@]} % 2 == 0))
-			then
-				break
-			else
-				echo "You need an even number of disks for a ZFS RAID 10."
-			fi
-		else
-			echo "You need at least 4 disks for a ZFS RAID 10."
-		fi
-	fi
-	DISKS+=($input)
-done
-
-echo -ne "\nEnter Desired Hostname[ubuntu-server]: "
-unset HOSTNAME
-read HOSTNAME
-HOSTNAME=${HOSTNAME:-ubuntu-server}
-
-echo -n "Enter Desired Username[ubuntu-server]: "
-unset ADMINUSER
-read ADMINUSER
-ADMINUSER=${ADMINUSER:-ubuntu-server}
+if [[ -z ADMINUSER ]]; then
+	echo -n "Enter Desired Username[jeff]: "
+	read ADMINUSER
+fi
+ADMINUSER=${ADMINUSER:-jeff}
 
 
 # Function to handle errors
@@ -82,52 +55,24 @@ prerequisites () {
 }
 
 partition () {
-	# Initial bpool Creation
-	bpool="zpool create \
--o ashift=12 \
--o autotrim=on \
--o compatibility=grub2 \
--o cachefile=/etc/zfs/zpool.cache \
--O devices=off \
--O acltype=posixacl -O xattr=sa \
--O compression=lz4 \
--O normalization=formD \
--O relatime=on \
--O canmount=off -O mountpoint=/boot -R /mnt \
-bpool "
-
-# Initial rpool Creation
-	rpool="zpool create \
--o ashift=12 \
--o autotrim=on \
--O acltype=posixacl -O xattr=sa -O dnodesize=auto \
--O compression=lz4 \
--O normalization=formD \
--O relatime=on \
--O canmount=off -O mountpoint=/ -R /mnt \
-rpool "
-
-	# Customize with user entered Disks
-	for ((i=0; i<${#DISKS[@]}; i+=2))
-	do
-		bpool+="mirror "
-		bpool+="/dev/disk/by-id/${DISKS[i]}-part2 "
-		bpool+="/dev/disk/by-id/${DISKS[i+1]}-part2 "
-
-		rpool+="mirror "
-		rpool+="/dev/disk/by-id/${DISKS[i]}-part3 "
-		rpool+="/dev/disk/by-id/${DISKS[i+1]}-part3 "
-	done
-	bpool+="-f"
-	rpool+="-f"
+	if [[ -z PARTSIZE ]]; then
+		echo -n "What size would you like the root partitions?[100G] "
+		read PARTSIZE
+	fi
 
 	echo -n "Wiping Filesystems, Zapping Partitions, and Creating New Partitions..."
+
+	PARTSIZE=${PARTSIZE:-100G}
 	for ((i=0; i<${#DISKS[@]}; i++))
 	do
 		run_cmd "wipefs -a /dev/disk/by-id/${DISKS[i]}"
 		run_cmd "sgdisk --zap-all /dev/disk/by-id/${DISKS[i]}"
-		run_cmd "sgdisk -n1:1M:+512M -t1:EF00 /dev/disk/by-id/${DISKS[i]}"
-		run_cmd "sgdisk -n2:0:+1G -t2:BE00 /dev/disk/by-id/${DISKS[i]}"
+
+		run_cmd "sgdisk -n1:1M:+1G -t1:EF00 /dev/disk/by-id/${DISKS[i]}"
+		run_cmd "mkfs.fat -F32 /dev/disk/by-id/${DISKS[i]}-part1"
+
+		run_cmd "sgdisk -n2:0:$PARTSIZE -t2:8300 /dev/disk/by-id/${DISKS[i]}"
+		run_cmd "mkfs.btrfs /dev/disk/by-id/${DISKS[i]}-part2"
 		run_cmd "sgdisk -n3:0:0 -t3:BF00 /dev/disk/by-id/${DISKS[i]}"
 	done
 
@@ -265,8 +210,8 @@ postInstall () {
 # Main Script Execution
 prerequisites
 partition
-createzpools
-install
-prepareChroot
-runChroot
-postInstall
+# createzpools
+# install
+# prepareChroot
+# runChroot
+# postInstall
