@@ -7,13 +7,13 @@ I Personally used the instance from this link: https://ubuntu.com/download/serve
 
 Here is the command you need to get this started.
 ```
-bash <(wget -qO- https://raw.githubusercontent.com/Reddimes/ubuntu-zfsraid10/refs/heads/main/tools/install.sh)
+bash <(wget -qO- https://raw.githubusercontent.com/Reddimes/debian-nas/refs/heads/main/tools/install.sh)
 ```
 
 ## Custom Install
 If you need to customize the installation.  You need to do the following:
 ```
-git clone --depth 1 https://github.com/Reddimes/ubuntu-zfsraid10.git
+git clone --depth 1 https://github.com/Reddimes/debian-nas.git
 cd ./ubuntu-zfsraid10
 ```
 Once you have cloned the git repository, you can make changes as you see fit.  You can changed the files that get copied over by editing the `./Plan/` folder.  This folder gets copied to the root of your installation.  So `./Plan/etc/apt/sources.list.d/ubuntu.sources` gets copied to `/etc/apt/sources.list.d/ubuntu.sources`.
